@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tonight's Ticket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:wght@400;500&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a velvet-curtain page; controls on the left, one butter-yellow cinema ticket on the right that reprints on every pick. */
+:root{
+  color-scheme: dark;
+  --curtain:#4a0d1a;
+  --curtain-deep:#36080f;
+  --paper:#f6d77a;
+  --paper-shade:#e9c355;
+  --ink:#21131a;
+  --cream:#fbeede;
+  --muted:#dcaaa8;
+  --line:rgba(251,238,222,.22);
+  --display:"Anton","Arial Narrow",Impact,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  --stub:132px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--curtain);color:var(--cream);font-family:var(--body);font-size:16px;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--paper);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 72px;display:flex;flex-direction:column;gap:40px}
+
+header{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(44px,8vw,92px);line-height:.95;letter-spacing:.01em;text-transform:uppercase;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--paper)}
+.lede{max-width:56ch;color:var(--muted);margin:0}
+
+.stage{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:40px;align-items:start}
+
+/* controls */
+.controls{display:flex;flex-direction:column;gap:22px}
+.group{display:flex;flex-direction:column;gap:8px}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;background:transparent;border:0;border-left:1px solid var(--line);padding:9px 6px;font-weight:600;font-size:14px}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--cream);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:14px;font-weight:500}
+.chips button:hover,.seg button:hover{border-color:var(--cream)}
+.chips button[aria-pressed="true"]{background:var(--paper);border-color:var(--paper);color:var(--ink);font-weight:700}
+.pick{background:var(--paper);color:var(--ink);border:0;border-radius:10px;padding:16px 18px;font-family:var(--display);font-size:26px;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 5px 0 var(--curtain-deep);transition:transform .08s,box-shadow .08s}
+.pick:hover{background:#ffe28c}
+.pick:active{transform:translateY(4px);box-shadow:0 1px 0 var(--curtain-deep)}
+.count{font-family:var(--mono);font-size:13px;color:var(--muted);margin:0}
+.link{background:none;border:0;padding:0;text-decoration:underline;color:var(--cream);font-family:var(--mono);font-size:13px}
+
+/* ticket */
+.ticket{background:var(--paper);color:var(--ink);border-radius:14px;display:grid;grid-template-columns:1fr var(--stub);min-height:340px;
+  filter:drop-shadow(0 18px 24px rgba(0,0,0,.35));
+  -webkit-mask:radial-gradient(circle 12px at calc(100% - var(--stub)) 0,#0000 97%,#000),radial-gradient(circle 12px at calc(100% - var(--stub)) 100%,#0000 97%,#000);
+  -webkit-mask-composite:source-in;
+  mask:radial-gradient(circle 12px at calc(100% - var(--stub)) 0,#0000 97%,#000),radial-gradient(circle 12px at calc(100% - var(--stub)) 100%,#0000 97%,#000);
+  mask-composite:intersect}
+.ticket.print{animation:print .45s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes print{from{transform:translateY(-10px) rotate(-1.2deg)}to{transform:none}}
+.main{padding:26px 28px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-family:var(--mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.rating{border:1.5px solid var(--ink);padding:1.5px 9px;border-radius:4px;font-weight:500}
+.kind{background:var(--ink);color:var(--paper);padding:3px 10px;border-radius:4px;font-weight:500}
+.title{font-family:var(--display);font-weight:400;font-size:clamp(34px,5.4vw,64px);line-height:1;text-transform:uppercase;margin:0;overflow-wrap:anywhere;min-height:2em;text-wrap:balance}
+.pitch{font-size:18px;font-weight:500;margin:0;max-width:46ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{border:1.5px solid var(--ink);border-radius:999px;padding:2px 11px;font-size:13px;font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:8px}
+.actions button,.actions a{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:8px;padding:8px 14px;font-weight:700;font-size:14px;text-decoration:none}
+.actions button:hover,.actions a:hover{background:var(--ink);color:var(--paper)}
+.actions .solid{background:var(--ink);color:var(--paper)}
+.actions .solid:hover{background:#3b2530}
+.actions :focus-visible{outline-color:var(--ink)}
+.stub{border-left:2px dashed rgba(33,19,26,.55);background:var(--paper-shade);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:26px 8px;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.admit{font-family:var(--display);font-size:34px;letter-spacing:.06em;writing-mode:vertical-rl;transform:rotate(180deg);line-height:1}
+.seat b{display:block;font-family:var(--display);font-weight:400;font-size:30px;letter-spacing:.04em}
+.empty .title{font-size:clamp(28px,4vw,44px)}
+
+/* watchlist */
+.shelf{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line);padding-top:28px}
+.shelf-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:10px}
+h2{font-family:var(--display);font-weight:400;font-size:32px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.list li{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.list strong{display:block;font-weight:700;overflow-wrap:anywhere}
+.list small{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.list button{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:13px;flex:none}
+.list button:hover{border-color:var(--cream)}
+.none{color:var(--muted);margin:0}
+
+@media (max-width:820px){
+  .stage{grid-template-columns:1fr;gap:28px}
+  .ticket-col{order:-1}
+}
+@media (max-width:520px){
+  :root{--stub:64px}
+  .wrap{padding:28px 16px 56px;gap:28px}
+  .main{padding:20px 18px}
+  .admit{font-size:24px}
+  .seat b{font-size:20px}
+  .stub{font-size:10px;padding:20px 4px}
+}
+@media (prefers-reduced-motion:reduce){.ticket.print{animation:none}.pick{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Random picks from <span id="total"></span> films, shows and books, all highly rated</div>
+    <h1>Watch or read. What is it <em>tonight</em>?</h1>
+    <p class="lede">Stop scrolling. Set a filter or leave everything open, press the button, and go with whatever the ticket says. Films and shows are rated above 8 on IMDb, books above 4 on Goodreads.</p>
+  </header>
+
+  <div class="stage">
+    <section class="controls" aria-label="Filters">
+      <div class="group">
+        <div class="label" id="l-type">Type</div>
+        <div class="seg" id="type" role="group" aria-labelledby="l-type"></div>
+      </div>
+      <div class="group">
+        <div class="label" id="l-region">From</div>
+        <div class="seg" id="region" role="group" aria-labelledby="l-region"></div>
+      </div>
+      <div class="group">
+        <div class="label" id="l-min">Minimum rating (IMDb / Goodreads)</div>
+        <div class="seg" id="min" role="group" aria-labelledby="l-min"></div>
+      </div>
+      <div class="group">
+        <div class="label" id="l-genre">Genre (pick any, or none)</div>
+        <div class="chips" id="genres" role="group" aria-labelledby="l-genre"></div>
+      </div>
+      <button class="pick" id="pick" type="button">Pick for me</button>
+      <p class="count"><span id="count"></span> <button class="link" id="resetSeen" type="button" hidden>Reset seen</button></p>
+    </section>
+
+    <div class="ticket-col">
+      <article class="ticket" id="ticket" aria-live="polite">
+        <div class="main">
+          <div class="row"><span class="kind" id="kind"></span><span class="rating" id="rating"></span><span id="year"></span><span id="lang"></span></div>
+          <h3 class="title" id="title"></h3>
+          <p class="pitch" id="pitch"></p>
+          <div class="tags" id="tags"></div>
+          <div class="actions" id="actions">
+            <button class="solid" id="save" type="button">Add to watchlist</button>
+            <button id="seen" type="button">Seen it, pick another</button>
+            <a id="where" target="_blank" rel="noopener">Where to watch</a>
+          </div>
+        </div>
+        <div class="stub">
+          <div>Tonight</div>
+          <div class="admit">Admit one</div>
+          <div class="seat">Seat<b id="seat"></b></div>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <section class="shelf" aria-label="Watchlist">
+    <div class="shelf-head">
+      <h2>Watchlist</h2>
+      <button class="link" id="copy" type="button" hidden>Copy list</button>
+    </div>
+    <ul class="list" id="list"></ul>
+    <p class="none" id="none">Nothing saved yet. Add a pick and it stays here in this browser.</p>
+  </section>
+  <p class="count">Ratings are a saved snapshot, not live. IMDb is out of 10, Goodreads out of 5, and both can move by a decimal over time.</p>
+</div>
+
+<script>
+// title|year|m, s or b|genres|language|pitch|rating (IMDb /10, or Goodreads /5 for books)|author|region override
+const DATA = `
+The Shawshank Redemption|1994|m|Drama|English|A banker serving life quietly refuses to let prison own him.|9.3
+The Godfather|1972|m|Crime,Drama|English|The reluctant son of a mafia family takes the chair.|9.2
+12 Angry Men|1957|m|Drama|English|One juror refuses to vote guilty and the room slowly turns.|9.0
+Schindler's List|1993|m|Drama|English|A factory owner starts saving the workers he meant to profit from.|9.0
+The Dark Knight|2008|m|Action,Crime|English|Batman meets a criminal who only wants chaos.|9.0
+Pulp Fiction|1994|m|Crime,Comedy|English|Hitmen, a boxer and a briefcase, told out of order.|8.9
+The Lord of the Rings: The Fellowship of the Ring|2001|m|Fantasy|English|A hobbit sets out to destroy the most dangerous ring ever made.|8.9
+Forrest Gump|1994|m|Drama,Romance|English|A kind man wanders through thirty years of American history.|8.8
+Fight Club|1999|m|Drama,Thriller|English|An insomniac and a soap salesman start something they cannot stop.|8.8
+Inception|2010|m|Sci-Fi,Thriller|English|Thieves break into dreams to plant a single idea.|8.8
+Interstellar|2014|m|Sci-Fi,Drama|English|A father leaves Earth to find humanity a new home.|8.7
+The Matrix|1999|m|Sci-Fi,Action|English|A hacker learns his world is a simulation.|8.7
+Goodfellas|1990|m|Crime|English|Thirty years inside the mob, from the inside.|8.7
+Se7en|1995|m|Crime,Thriller|English|Two detectives chase a killer working through the deadly sins.|8.6
+The Silence of the Lambs|1991|m|Thriller,Crime|English|An FBI trainee asks one killer for help catching another.|8.6
+Saving Private Ryan|1998|m|Action,Drama|English|A squad crosses wartime France to bring one soldier home.|8.6
+Terminator 2: Judgment Day|1991|m|Sci-Fi,Action|English|The killer machine comes back, this time as the bodyguard.|8.6
+Back to the Future|1985|m|Sci-Fi,Comedy|English|A teenager lands in 1955 and nearly erases himself.|8.5
+Gladiator|2000|m|Action,Drama|English|A betrayed general fights his way back as a slave.|8.5
+The Departed|2006|m|Crime,Thriller|English|A cop inside the mob and a mobster inside the police.|8.5
+Whiplash|2014|m|Drama|English|A young drummer and a teacher who goes too far.|8.5
+The Prestige|2006|m|Mystery,Thriller|English|Two rival magicians ruin each other for one trick.|8.5
+Psycho|1960|m|Horror,Thriller|English|A woman on the run checks into the wrong motel.|8.5
+Alien|1979|m|Horror,Sci-Fi|English|A cargo crew picks up something it should have left alone.|8.5
+Django Unchained|2012|m|Action,Drama|English|A freed slave and a bounty hunter go after a plantation owner.|8.5
+Léon|1994|m|Action,Crime|English|A solitary hitman takes in the girl next door.|8.5
+The Lion King|1994|m|Animation|English|A lion cub runs from his past, then has to face it.|8.5
+Casablanca|1942|m|Romance,Drama|English|A bar owner meets the woman who left him, and her husband.|8.5
+Dune: Part Two|2024|m|Sci-Fi,Action|English|An exiled heir joins the desert people against his enemies.|8.5
+Spider-Man: Across the Spider-Verse|2023|m|Animation,Action|English|Miles Morales takes on every other Spider-Person at once.|8.5
+Spider-Man: Into the Spider-Verse|2018|m|Animation,Action|English|A Brooklyn teen meets Spider-People from other worlds.|8.4
+The Shining|1980|m|Horror|English|A winter caretaker job in an empty hotel goes badly.|8.4
+Inglourious Basterds|2009|m|Action,Drama|English|Two separate plots to burn down the Nazi high command.|8.4
+Memento|2000|m|Mystery,Thriller|English|A man with no short-term memory hunts a killer backwards.|8.4
+Coco|2017|m|Animation|English|A boy who loves music crosses into the Land of the Dead.|8.4
+WALL·E|2008|m|Animation,Sci-Fi|English|The last robot on Earth falls in love.|8.4
+Toy Story|1995|m|Animation,Comedy|English|A cowboy doll is threatened by a shiny new spaceman.|8.3
+Good Will Hunting|1997|m|Drama|English|A janitor who is a maths genius finally talks to someone.|8.3
+Up|2009|m|Animation,Comedy|English|A widower flies his house to South America with a stowaway.|8.3
+Joker|2019|m|Crime,Drama|English|A failing comedian comes apart in a city that ignores him.|8.3
+Eternal Sunshine of the Spotless Mind|2004|m|Romance,Sci-Fi|English|A couple erase each other and regret it mid-procedure.|8.3
+Oppenheimer|2023|m|Drama|English|The physicist who built the bomb and lived with it.|8.3
+The Truman Show|1998|m|Comedy,Drama|English|A man slowly realises his whole life is a TV set.|8.2
+Die Hard|1988|m|Action|English|One barefoot cop against a tower full of thieves.|8.2
+Jurassic Park|1993|m|Sci-Fi,Action|English|A dinosaur theme park fails its safety inspection.|8.2
+Top Gun: Maverick|2022|m|Action|English|An ageing pilot trains a new class for an impossible run.|8.2
+Prisoners|2013|m|Thriller,Crime|English|Two girls disappear and a father takes over the search.|8.2
+Shutter Island|2010|m|Mystery,Thriller|English|A marshal investigates a vanished patient on an asylum island.|8.2
+The Sixth Sense|1999|m|Mystery,Horror|English|A child psychologist treats a boy who sees the dead.|8.2
+The Thing|1982|m|Horror,Sci-Fi|English|An Antarctic crew cannot tell who is still human.|8.2
+The Wolf of Wall Street|2013|m|Comedy,Crime|English|A stockbroker gets very rich very dishonestly.|8.2
+Green Book|2018|m|Comedy,Drama|English|A bouncer drives a pianist through the 1960s American South.|8.2
+Monty Python and the Holy Grail|1975|m|Comedy|English|King Arthur's quest, with coconuts for horses.|8.2
+Finding Nemo|2003|m|Animation,Comedy|English|A nervous clownfish crosses the ocean for his son.|8.2
+Mad Max: Fury Road|2015|m|Action|English|One long desert chase, loud and beautiful.|8.1
+The Grand Budapest Hotel|2014|m|Comedy|English|A concierge, a lobby boy and a stolen painting.|8.1
+Gone Girl|2014|m|Thriller,Mystery|English|A wife vanishes and the husband looks guilty.|8.1
+Before Sunrise|1995|m|Romance|English|Two strangers walk and talk through one night in Vienna.|8.1
+Before Sunset|2004|m|Romance|English|Nine years later they get one afternoon in Paris.|8.1
+The Big Lebowski|1998|m|Comedy|English|A laid-back bowler gets mistaken for a millionaire.|8.1
+Ratatouille|2007|m|Animation,Comedy|English|A rat with a great palate cooks in a Paris kitchen.|8.1
+Jaws|1975|m|Thriller,Horror|English|A beach town, a holiday weekend and a shark.|8.1
+The Exorcist|1973|m|Horror|English|A mother runs out of doctors and calls two priests.|8.1
+Seven Samurai|1954|m|Action,Drama|Japanese|Farmers hire seven swordsmen to face bandits.|8.6
+Spirited Away|2001|m|Animation,Fantasy|Japanese|A girl works in a bathhouse for spirits to free her parents.|8.6
+Grave of the Fireflies|1988|m|Animation,Drama|Japanese|A brother and little sister try to survive wartime Japan.|8.5
+Your Name|2016|m|Animation,Romance|Japanese|Two teenagers keep waking up in each other's bodies.|8.4
+Princess Mononoke|1997|m|Animation,Fantasy|Japanese|A cursed prince walks into a war between a forest and a town.|8.3
+Howl's Moving Castle|2004|m|Animation,Fantasy|Japanese|A girl turned old by a curse moves in with a wizard.|8.2
+City of God|2002|m|Crime,Drama|Portuguese|Two boys grow up on opposite sides of a Rio gang war.|8.6
+Life Is Beautiful|1997|m|Comedy,Drama|Italian|A father turns a concentration camp into a game for his son.|8.6
+Cinema Paradiso|1988|m|Drama|Italian|A filmmaker remembers the projectionist who raised him.|8.5
+The Intouchables|2011|m|Comedy,Drama|French|A rich paralysed man hires the least qualified carer.|8.5
+Amélie|2001|m|Romance,Comedy|French|A shy waitress secretly fixes strangers' lives.|8.3
+Parasite|2019|m|Thriller,Drama|Korean|A poor family works its way into a rich household.|8.5
+Oldboy|2003|m|Thriller,Mystery|Korean|Locked up for fifteen years, released with no explanation.|8.3
+Memories of Murder|2003|m|Crime,Mystery|Korean|Two mismatched detectives fail to catch a rural killer.|8.1
+Pan's Labyrinth|2006|m|Fantasy|Spanish|A girl in fascist Spain finds a darker world underground.|8.2
+12th Fail|2023|m|Drama|Hindi|A village boy who failed school takes on India's hardest exam.|8.8
+3 Idiots|2009|m|Comedy,Drama|Hindi|Two friends look for the classmate who changed them.|8.4
+Dangal|2016|m|Drama|Hindi|A wrestler trains his daughters to win what he could not.|8.3
+Taare Zameen Par|2007|m|Drama|Hindi|An art teacher notices why a boy keeps failing.|8.3
+Andhadhun|2018|m|Thriller|Hindi|A pianist pretending to be blind sees a murder.|8.2
+Gangs of Wasseypur|2012|m|Crime|Hindi|Three generations of a coal-town blood feud.|8.2
+Zindagi Na Milegi Dobara|2011|m|Comedy,Drama|Hindi|Three friends on a road trip through Spain.|8.2
+Tumbbad|2018|m|Horror,Fantasy|Hindi|A family's greed for a cursed god's gold.|8.2
+Swades|2004|m|Drama|Hindi|A NASA engineer goes home and cannot leave.|8.2
+C/o Kancharapalem|2018|m|Romance,Drama|Telugu|Four love stories from one small neighbourhood.|8.7
+Jersey|2019|m|Drama|Telugu|A failed cricketer returns to the game at 36 for his son.|8.5
+Sita Ramam|2022|m|Romance|Telugu|A soldier's love letter takes twenty years to arrive.|8.5
+Mahanati|2018|m|Drama|Telugu|The rise and fall of screen legend Savitri.|8.4
+Agent Sai Srinivasa Athreya|2019|m|Mystery,Comedy|Telugu|A small-town detective stumbles into a real case.|8.3
+Jai Bhim|2021|m|Crime,Drama|Tamil|A lawyer takes the case of a tribal man missing from custody.|8.7
+Soorarai Pottru|2020|m|Drama|Tamil|A villager sets out to make flying affordable.|8.7
+96|2018|m|Romance|Tamil|School sweethearts meet again at a reunion.|8.5
+Maharaja|2024|m|Thriller,Crime|Tamil|A barber reports a stolen dustbin and the police get curious.|8.4
+Kaithi|2019|m|Action,Thriller|Tamil|A freed prisoner drives a truck through one very long night.|8.4
+Vikram|2022|m|Action|Tamil|A black-ops agent hunts a masked gang.|8.3
+Super Deluxe|2019|m|Drama,Comedy|Tamil|Four strange stories collide over one day.|8.3
+Kumbalangi Nights|2019|m|Drama|Malayalam|Four squabbling brothers learn to be a family.|8.5
+Drishyam|2013|m|Thriller|Malayalam|An ordinary man hides his family's crime with movie logic.|8.3
+Premam|2015|m|Romance|Malayalam|One man, three stages of falling in love.|8.3
+Manjummel Boys|2024|m|Thriller,Drama|Malayalam|A friend falls into a cave and nobody leaves without him.|8.2
+Kantara|2022|m|Action,Thriller|Kannada|A forest village, its guardian spirit and a land dispute.|8.2
+K.G.F: Chapter 1|2018|m|Action|Kannada|A Mumbai gangster heads into the gold fields.|8.2
+Breaking Bad|2008|s|Crime,Drama|English|A chemistry teacher starts cooking meth and likes it.|9.5
+Band of Brothers|2001|s|Drama,Action|English|One paratrooper company from training to the end of the war.|9.4
+Chernobyl|2019|s|Drama|English|The 1986 disaster and the people sent to contain it.|9.3
+The Wire|2002|s|Crime|English|Baltimore's drug trade seen from every side.|9.3
+Avatar: The Last Airbender|2005|s|Animation,Fantasy|English|A boy must master four elements to end a war.|9.3
+The Sopranos|1999|s|Crime,Drama|English|A mob boss starts seeing a therapist.|9.2
+Game of Thrones|2011|s|Fantasy,Drama|English|Noble families fight for a throne while winter approaches.|9.2
+Rick and Morty|2013|s|Animation,Comedy|English|A reckless scientist drags his grandson across dimensions.|9.1
+Sherlock|2010|s|Mystery,Crime|English|Holmes and Watson in present-day London.|9.0
+Better Call Saul|2015|s|Crime,Drama|English|How a small-time lawyer became a criminal's lawyer.|9.0
+The Office (US)|2005|s|Comedy|English|A paper company and the worst boss who means well.|9.0
+Arcane|2021|s|Animation,Action|English|Two sisters end up on opposite sides of a divided city.|9.0
+True Detective|2014|s|Crime,Mystery|English|Two detectives and a case that follows them for years.|8.9
+Fargo|2014|s|Crime|English|Polite Midwesterners and terrible crimes, a new story each season.|8.9
+Friends|1994|s|Comedy|English|Six friends, one coffee shop, ten years.|8.9
+Succession|2018|s|Drama|English|Four siblings compete for their father's media empire.|8.8
+Ted Lasso|2020|s|Comedy|English|An American football coach takes over an English soccer club.|8.8
+BoJack Horseman|2014|s|Animation,Comedy|English|A washed-up sitcom horse tries to be better.|8.8
+Fleabag|2016|s|Comedy,Drama|English|A messy Londoner tells you everything except the truth.|8.7
+Severance|2022|s|Sci-Fi,Thriller|English|Office workers whose work selves know nothing of home.|8.7
+Black Mirror|2011|s|Sci-Fi|English|Standalone stories about technology going wrong.|8.7
+Peaky Blinders|2013|s|Crime,Drama|English|A Birmingham gang rises after the First World War.|8.7
+Stranger Things|2016|s|Sci-Fi,Horror|English|A boy vanishes and a strange girl turns up.|8.6
+Parks and Recreation|2009|s|Comedy|English|The most optimistic civil servant in Indiana.|8.6
+Mindhunter|2017|s|Crime,Thriller|English|FBI agents interview serial killers to understand them.|8.6
+The Mandalorian|2019|s|Sci-Fi,Action|English|A bounty hunter ends up protecting his target.|8.6
+The Last of Us|2023|s|Drama,Horror|English|A smuggler escorts a girl across a ruined America.|8.6
+The Boys|2019|s|Action|English|Superheroes are corporate, corrupt and need stopping.|8.6
+Shōgun|2024|s|Drama|English|An English sailor is pulled into a power struggle in 1600 Japan.|8.6
+The Bear|2022|s|Drama,Comedy|English|A fine-dining chef inherits a chaotic sandwich shop.|8.5
+The Queen's Gambit|2020|s|Drama|English|An orphan becomes a chess prodigy in the 1960s.|8.5
+Brooklyn Nine-Nine|2013|s|Comedy,Crime|English|A childish detective and his very serious captain.|8.4
+Fullmetal Alchemist: Brotherhood|2009|s|Animation,Fantasy|Japanese|Two brothers pay a heavy price for forbidden alchemy.|9.1
+Attack on Titan|2013|s|Animation,Action|Japanese|Humanity lives behind walls to hide from giants.|9.1
+Death Note|2006|s|Animation,Thriller|Japanese|A student finds a notebook that kills whoever is named in it.|8.9
+Dark|2017|s|Sci-Fi,Mystery|German|A missing child exposes four families tied together by time.|8.7
+Crash Landing on You|2019|s|Romance|Korean|A South Korean heiress paraglides into the North.|8.7
+Money Heist|2017|s|Crime,Thriller|Spanish|A professor and eight robbers take the Royal Mint.|8.2
+Scam 1992|2020|s|Drama,Crime|Hindi|Harshad Mehta's rise and crash on the stock market.|9.2
+Gullak|2019|s|Comedy,Drama|Hindi|Small stories from a middle-class family.|9.1
+Panchayat|2020|s|Comedy,Drama|Hindi|A city graduate takes a job in a village office.|9.0
+Kota Factory|2019|s|Drama|Hindi|Teenagers grind through exam coaching in Kota.|9.0
+Rocket Boys|2022|s|Drama|Hindi|Bhabha and Sarabhai build India's science programmes.|8.8
+The Family Man|2019|s|Action,Thriller|Hindi|A spy hides his job from his own family.|8.7
+Sacred Games|2018|s|Crime,Thriller|Hindi|A cop gets a call from a gangster with 25 days to save Mumbai.|8.5
+Delhi Crime|2019|s|Crime|Hindi|Police race to solve a case that shook the country.|8.5
+Mirzapur|2018|s|Crime,Action|Hindi|Two brothers get pulled into a carpet baron's empire.|8.4
+Farzi|2023|s|Crime,Thriller|Hindi|An artist turns to printing perfect fake notes.|8.3
+Paatal Lok|2020|s|Crime,Thriller|Hindi|A washed-up cop gets the case of his life.|8.2
+Made in Heaven|2019|s|Drama,Romance|Hindi|Two wedding planners and the secrets behind big Delhi weddings.|8.2
+To Kill a Mockingbird|1960|b|Drama|English|A small-town lawyer defends a Black man, seen through his daughter's eyes.|4.3|Harper Lee
+1984|1949|b|Sci-Fi|English|A clerk in a watched society starts keeping a diary.|4.2|George Orwell
+Pride and Prejudice|1813|b|Romance|English|Elizabeth Bennet misjudges the proud Mr Darcy, and he her.|4.3|Jane Austen
+Jane Eyre|1847|b|Romance,Drama|English|A governess falls for an employer with something in the attic.|4.2|Charlotte Brontë
+The Hobbit|1937|b|Fantasy|English|A homebody is talked into robbing a dragon.|4.3|J.R.R. Tolkien
+The Fellowship of the Ring|1954|b|Fantasy|English|Nine companions set out to destroy a ring.|4.4|J.R.R. Tolkien
+Harry Potter and the Philosopher's Stone|1997|b|Fantasy|English|An orphan learns he is a wizard and goes to school.|4.5|J.K. Rowling
+A Game of Thrones|1996|b|Fantasy|English|A northern lord goes south to serve a king, unwisely.|4.4|George R.R. Martin
+The Name of the Wind|2007|b|Fantasy|English|An innkeeper tells the true story of his own legend.|4.5|Patrick Rothfuss
+The Way of Kings|2010|b|Fantasy|English|A slave, a scholar and a prince on a storm-swept world.|4.7|Brandon Sanderson
+Mistborn: The Final Empire|2006|b|Fantasy|English|A street thief joins a crew planning to rob a god-emperor.|4.5|Brandon Sanderson
+Good Omens|1990|b|Fantasy,Comedy|English|An angel and a demon try to cancel the apocalypse.|4.2|Terry Pratchett and Neil Gaiman
+Dune|1965|b|Sci-Fi|English|A noble family takes over a desert planet everyone wants.|4.3|Frank Herbert
+Project Hail Mary|2021|b|Sci-Fi|English|A man wakes alone on a spaceship with no memory of why.|4.5|Andy Weir
+The Martian|2011|b|Sci-Fi|English|A stranded astronaut farms potatoes on Mars.|4.4|Andy Weir
+Ender's Game|1985|b|Sci-Fi|English|A gifted child is trained to command a war.|4.3|Orson Scott Card
+The Hitchhiker's Guide to the Galaxy|1979|b|Sci-Fi,Comedy|English|Earth is demolished and one Englishman hitches a ride.|4.2|Douglas Adams
+Hyperion|1989|b|Sci-Fi|English|Seven pilgrims tell their stories on the way to a monster.|4.3|Dan Simmons
+Flowers for Algernon|1966|b|Sci-Fi,Drama|English|An operation makes a man a genius, for a while.|4.2|Daniel Keyes
+Children of Time|2015|b|Sci-Fi|English|The last humans find their new planet already occupied.|4.3|Adrian Tchaikovsky
+And Then There Were None|1939|b|Mystery|English|Ten guests on an island die one by one.|4.3|Agatha Christie
+Murder on the Orient Express|1934|b|Mystery|English|A snowbound train, one body and too many suspects.|4.2|Agatha Christie
+The Silence of the Lambs|1988|b|Thriller,Crime|English|An FBI trainee asks one killer for help catching another.|4.2|Thomas Harris
+The Godfather|1969|b|Crime|English|The reluctant son of a mafia family takes the chair.|4.4|Mario Puzo
+The Shining|1977|b|Horror|English|A winter caretaker job in an empty hotel goes badly.|4.3|Stephen King
+It|1986|b|Horror|English|Seven friends face the thing under their town, twice.|4.2|Stephen King
+East of Eden|1952|b|Drama|English|Two California families repeat the story of Cain and Abel.|4.4|John Steinbeck
+Lonesome Dove|1985|b|Drama|English|Two retired rangers drive cattle from Texas to Montana.|4.5|Larry McMurtry
+The Pillars of the Earth|1989|b|Drama|English|Building a cathedral takes decades and many enemies.|4.3|Ken Follett
+Shōgun|1975|b|Drama|English|An English sailor is pulled into a power struggle in 1600 Japan.|4.4|James Clavell
+The Book Thief|2005|b|Drama|English|A girl in Nazi Germany steals books, narrated by Death.|4.4|Markus Zusak
+The Kite Runner|2003|b|Drama|English|A man returns to Kabul to make up for a childhood betrayal.|4.3|Khaled Hosseini
+A Thousand Splendid Suns|2007|b|Drama|English|Two Afghan women in one household become allies.|4.4|Khaled Hosseini
+All the Light We Cannot See|2014|b|Drama|English|A blind French girl and a German radio boy in wartime.|4.3|Anthony Doerr
+The Nightingale|2015|b|Drama|English|Two sisters resist the occupation of France in different ways.|4.6|Kristin Hannah
+Pachinko|2017|b|Drama|English|Four generations of a Korean family in Japan.|4.3|Min Jin Lee
+A Gentleman in Moscow|2016|b|Drama|English|A count is sentenced to spend his life inside a grand hotel.|4.3|Amor Towles
+The Song of Achilles|2011|b|Romance,Fantasy|English|The Trojan War told by the man who loved Achilles.|4.3|Madeline Miller
+Outlander|1991|b|Romance,Fantasy|English|A 1940s nurse steps through stones into 1743 Scotland.|4.3|Diana Gabaldon
+Educated|2018|b|Non-fiction|English|A woman raised without school teaches herself into Cambridge.|4.5|Tara Westover
+Born a Crime|2016|b|Non-fiction,Comedy|English|Growing up mixed-race under apartheid, told with jokes.|4.5|Trevor Noah
+Atomic Habits|2018|b|Non-fiction|English|How small routines add up to large changes.|4.3|James Clear
+Bad Blood|2018|b|Non-fiction,Crime|English|How a blood-testing startup fooled Silicon Valley.|4.4|John Carreyrou
+Into Thin Air|1997|b|Non-fiction|English|A journalist survives the 1996 Everest disaster.|4.2|Jon Krakauer
+When Breath Becomes Air|2016|b|Non-fiction|English|A neurosurgeon writes about his own terminal diagnosis.|4.4|Paul Kalanithi
+The Emperor of All Maladies|2010|b|Non-fiction|English|The long history of cancer and the people who fought it.|4.3|Siddhartha Mukherjee
+Surely You're Joking, Mr. Feynman!|1985|b|Non-fiction,Comedy|English|A physicist's stories of safecracking, bongos and curiosity.|4.3|Richard Feynman
+The Count of Monte Cristo|1844|b|Drama,Action|French|A wrongly jailed sailor returns rich and patient.|4.3|Alexandre Dumas
+Les Misérables|1862|b|Drama|French|An ex-convict tries to live well with a policeman on his trail.|4.2|Victor Hugo
+The Little Prince|1943|b|Fantasy|French|A pilot stranded in the desert meets a boy from an asteroid.|4.3|Antoine de Saint-Exupéry
+Crime and Punishment|1866|b|Crime,Drama|Russian|A student commits a murder and cannot live with it.|4.3|Fyodor Dostoevsky
+The Brothers Karamazov|1880|b|Drama|Russian|Three brothers, a hated father and a killing.|4.4|Fyodor Dostoevsky
+The Girl with the Dragon Tattoo|2005|b|Mystery,Thriller|Swedish|A journalist and a hacker dig into a forty-year-old disappearance.|4.2|Stieg Larsson
+A Man Called Ove|2012|b|Comedy,Drama|Swedish|A grumpy widower is interrupted by new neighbours.|4.4|Fredrik Backman
+The Shadow of the Wind|2001|b|Mystery|Spanish|A boy in Barcelona finds a book someone is burning every copy of.|4.3|Carlos Ruiz Zafón
+Sapiens|2011|b|Non-fiction|Hebrew|How one ape species came to run the planet.|4.3|Yuval Noah Harari
+Man's Search for Meaning|1946|b|Non-fiction|German|A psychiatrist on what kept people alive in the camps.|4.4|Viktor Frankl
+The Diary of a Young Girl|1947|b|Non-fiction|Dutch|Two years in hiding, written by a teenager.|4.2|Anne Frank
+A Fine Balance|1995|b|Drama|English|Four strangers share a flat during India's Emergency.|4.4|Rohinton Mistry|indian
+Malgudi Days|1943|b|Drama,Comedy|English|Short stories from one imaginary South Indian town.|4.2|R.K. Narayan|indian
+Ponniyin Selvan|1955|b|Drama,Action|Tamil|Spies, princes and plots around the Chola throne.|4.6|Kalki Krishnamurthy
+Mrityunjaya|1967|b|Drama|Marathi|The Mahabharata retold from Karna's side.|4.4|Shivaji Sawant
+Godaan|1936|b|Drama|Hindi|A poor farmer's lifelong wish to own a cow.|4.3|Premchand
+`.trim().split('\n').map(l => { const [t,y,k,g,lang,p,r,a,o] = l.split('|'); return {id:t+'·'+y+(k==='b'?'·b':''), t, y, k, g:g.split(','), lang, p, r:+r, a, o}; });
+
+const INDIAN = ['Telugu','Hindi','Tamil','Malayalam','Kannada','Marathi'];
+const KIND = {m:'Movie', s:'Series', b:'Book'};
+const rateText = d => d.k === 'b' ? 'Goodreads ' + d.r.toFixed(1) : 'IMDb ' + d.r.toFixed(1);
+const regionOf = d => d.o ? d.o : d.lang === 'English' ? 'english' : INDIAN.includes(d.lang) ? 'indian' : 'world';
+const GENRES = [...new Set(DATA.flatMap(d => d.g))].sort();
+const byId = Object.fromEntries(DATA.map(d => [d.id, d]));
+const $ = id => document.getElementById(id);
+const rand = a => a[Math.floor(Math.random() * a.length)];
+
+const store = {
+  get(k, f){ try { const v = localStorage.getItem('tt-' + k); return v ? JSON.parse(v) : f; } catch(e){ return f; } },
+  set(k, v){ try { localStorage.setItem('tt-' + k, JSON.stringify(v)); } catch(e){} }
+};
+
+let S = { type:'any', region:'any', min:'8', genres:[], cur:null, seat:'', dealt:[] };
+let list = store.get('list', []).filter(id => byId[id]);
+let seen = store.get('seen', []).filter(id => byId[id]);
+let timer = null;
+
+function pool(){
+  return DATA.filter(d =>
+    (S.type === 'any' || d.k === S.type) &&
+    (S.region === 'any' || regionOf(d) === S.region) &&
+    (d.k === 'b' ? d.r * 2 : d.r) >= +S.min &&
+    (!S.genres.length || d.g.some(g => S.genres.includes(g))) &&
+    !seen.includes(d.id));
+}
+
+function seg(el, opts, key){
+  el.innerHTML = '';
+  opts.forEach(([v, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = label;
+    b.setAttribute('aria-pressed', S[key] === v);
+    b.onclick = () => { S[key] = v; renderControls(); };
+    el.appendChild(b);
+  });
+}
+
+function renderControls(){
+  seg($('type'), [['any','Any'],['m','Movie'],['s','Series'],['b','Book']], 'type');
+  seg($('region'), [['any','Anywhere'],['english','English'],['indian','Indian'],['world','World']], 'region');
+  seg($('min'), [['8','8+ / 4+'],['8.5','8.5+ / 4.25+'],['9','9+ / 4.5+']], 'min');
+  const g = $('genres'); g.innerHTML = '';
+  GENRES.forEach(name => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = name;
+    b.setAttribute('aria-pressed', S.genres.includes(name));
+    b.onclick = () => {
+      S.genres = S.genres.includes(name) ? S.genres.filter(x => x !== name) : [...S.genres, name];
+      renderControls();
+    };
+    g.appendChild(b);
+  });
+  const n = pool().length;
+  $('count').textContent = n + (n === 1 ? ' title matches.' : ' titles match.') + (seen.length ? ' ' + seen.length + ' marked seen.' : '');
+  $('resetSeen').hidden = !seen.length;
+}
+
+function showTicket(d){
+  const t = $('ticket');
+  t.classList.toggle('empty', !d);
+  $('actions').hidden = !d;
+  if (!d){
+    $('kind').textContent = 'Sold out'; $('rating').hidden = true; $('year').textContent = ''; $('lang').textContent = '';
+    $('title').textContent = 'Nothing matches those filters';
+    $('pitch').textContent = seen.length ? 'Loosen a filter, or reset the titles you marked as seen.' : 'Loosen a filter and try again.';
+    $('tags').innerHTML = ''; $('seat').textContent = '--';
+    return;
+  }
+  $('kind').textContent = KIND[d.k];
+  $('seen').textContent = d.k === 'b' ? 'Read it, pick another' : 'Seen it, pick another';
+  $('where').textContent = d.k === 'b' ? 'Find this book' : 'Where to watch';
+  $('year').textContent = d.y;
+  $('rating').hidden = false; $('rating').textContent = '★ ' + rateText(d);
+  $('lang').textContent = d.k === 'b' ? d.lang + ' · ' + d.a : d.lang;
+  $('title').textContent = d.t;
+  $('pitch').textContent = d.p;
+  $('tags').innerHTML = '';
+  d.g.forEach(x => { const s = document.createElement('span'); s.textContent = x; $('tags').appendChild(s); });
+  $('seat').textContent = S.seat;
+  $('where').href = 'https://www.google.com/search?q=' + encodeURIComponent(d.k === 'b' ? d.t + ' by ' + d.a + ' book' : 'where to watch ' + d.t + ' ' + d.y);
+  const saved = list.includes(d.id);
+  $('save').textContent = saved ? 'On your watchlist' : 'Add to watchlist';
+  $('save').disabled = saved;
+}
+
+function pick(){
+  clearInterval(timer);
+  const p = pool();
+  if (!p.length){ S.cur = null; showTicket(null); return; }
+  let c = p.filter(d => !S.dealt.includes(d.id) && d.id !== S.cur);
+  if (!c.length){ S.dealt = []; c = p.length > 1 ? p.filter(d => d.id !== S.cur) : p; }
+  const d = rand(c);
+  S.cur = d.id; S.dealt.push(d.id);
+  S.seat = 'ABCDEFGHJK'[Math.floor(Math.random() * 10)] + (1 + Math.floor(Math.random() * 24));
+  const land = () => {
+    showTicket(d);
+    const t = $('ticket'); t.classList.remove('print'); void t.offsetWidth; t.classList.add('print');
+  };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || p.length < 3){ land(); return; }
+  let n = 0;
+  $('pitch').textContent = ' '; $('tags').innerHTML = '';
+  timer = setInterval(() => {
+    $('title').textContent = rand(p).t;
+    if (++n >= 12){ clearInterval(timer); land(); }
+  }, 65);
+}
+
+function renderList(){
+  const ul = $('list'); ul.innerHTML = '';
+  list.forEach(id => {
+    const d = byId[id], li = document.createElement('li'), div = document.createElement('div');
+    const s = document.createElement('strong'); s.textContent = d.t;
+    const m = document.createElement('small'); m.textContent = KIND[d.k] + ' · ' + (d.k === 'b' ? d.a : d.y) + ' · ' + rateText(d);
+    div.append(s, m);
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Remove';
+    b.setAttribute('aria-label', 'Remove ' + d.t);
+    b.onclick = () => { list = list.filter(x => x !== id); store.set('list', list); renderList(); if (S.cur) showTicket(byId[S.cur]); };
+    li.append(div, b); ul.appendChild(li);
+  });
+  $('none').hidden = !!list.length;
+  $('copy').hidden = !list.length;
+}
+
+$('pick').onclick = pick;
+$('save').onclick = () => {
+  if (S.cur && !list.includes(S.cur)){ list.unshift(S.cur); store.set('list', list); renderList(); showTicket(byId[S.cur]); }
+};
+$('seen').onclick = () => {
+  if (!S.cur) return;
+  seen.push(S.cur); store.set('seen', seen); renderControls(); pick();
+};
+$('resetSeen').onclick = () => { seen = []; store.set('seen', seen); renderControls(); };
+$('copy').onclick = async () => {
+  const text = list.map(id => { const d = byId[id]; return d.t + (d.k === 'b' ? ' by ' + d.a + ' (book)' : ' (' + d.y + ')'); }).join('\n');
+  try { await navigator.clipboard.writeText(text); $('copy').textContent = 'Copied'; }
+  catch(e){ $('copy').textContent = 'Copy blocked'; }
+  setTimeout(() => $('copy').textContent = 'Copy list', 1500);
+};
+
+function start(saved){
+  if (saved && saved.type) S = Object.assign(S, saved);
+  $('total').textContent = DATA.length;
+  renderControls(); renderList();
+  if (S.cur && byId[S.cur]) showTicket(byId[S.cur]);
+  else {
+    const p = pool();
+    if (p.length){ const d = rand(p); S.cur = d.id; S.dealt = [d.id]; S.seat = 'F12'; showTicket(d); } else showTicket(null);
+  }
+}
+const hot = window.claude && window.claude.hot;
+if (hot && hot.snapshot) hot.snapshot(() => S);
+if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+</script>
+</body>
+</html>
